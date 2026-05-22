@@ -445,12 +445,8 @@ function renderGasInputs() {
 }
 
 renderGasInputs(); // initialize
-
 function calculateGas() {
-    let eq = document.getElementById("gasEquation").value;
-    let out = "";
+    document.getElementById("outputGas").innerText =
+        "Gas law solver will be activated in Version 1.0.3.";
+}
 
-    if (eq === "pvnrt") {
-        let P = parseFloat(document.getElementById("P").value);
-        let V = parseFloat(document.getElementById("V").value);
-        let nVal = parse
