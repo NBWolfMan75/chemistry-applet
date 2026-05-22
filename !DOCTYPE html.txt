@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chemistry Applet – Version 1.0.2</title>
+<link rel="icon" type="image/png" href="favicon.png">
+
+<!-- VERSION TAG -->
+<!-- Version: 1.0.2 -->
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background: #f5f7fa;
+        color: #222;
+        transition: background 0.3s, color 0.3s;
+    }
+    body.dark {
+        background: #1e1e1e;
+        color: #e0e0e0;
+    }
+
+    /* Banner */
+    #banner {
+        width: 100%;
+        border-bottom: 4px solid #0077cc;
+    }
+
+    /* Tabs */
+    .tabs {
+        display: flex;
+        background: #2d3e50;
+        color: white;
+        font-size: 18px;
+        align-items: center;
+        padding-left: 10px;
+    }
+    .tab {
+        padding: 14px 22px;
+        cursor: pointer;
+        border-right: 1px solid #44576a;
+    }
+    .tab:hover { background: #3c4f63; }
+    .active { background: #0077cc; }
+
+    /* Dark mode button */
+    #darkToggle {
+        margin-left: auto;
+        padding: 10px 16px;
+        background: #44576a;
+        color: white;
+        border: none;
+        cursor: pointer;
+        border-radius: 6px;
+        margin-right: 10px;
+    }
+    #darkToggle:hover { background: #5a6f85; }
+
+    /* Content */
+    .content {
+        padding: 20px;
+        background: white;
+        margin: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: background 0.3s, color 0.3s;
+    }
+    body.dark .content {
+        background: #2c2c2c;
+        color: #e0e0e0;
+        box-shadow: 0 2px 8px rgba(255,255,255,0.05);
+    }
+
+    input, select {
+        padding: 6px;
+        margin: 4px;
+        width: 160px;
+        background: white;
+        color: black;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+    body.dark input, body.dark select {
+        background: #444;
+        color: white;
+        border: 1px solid #777;
+    }
+
+    button {
+        padding: 8px 14px;
+        margin-top: 10px;
+        cursor: pointer;
+        background: #0077cc;
+        color: white;
+        border: none;
+        border-radius: 4px;
+    }
+    button:hover { background: #005fa3; }
+
+    #outputDA, #outputStoich, #outputGas {
+        margin-top: 20px;
+        padding: 15px;
+        background: #fff;
+        border-left: 4px solid #28a745;
+        white-space: pre-wrap;
+        font-family: Consolas, monospace;
+    }
+    body.dark #outputDA, 
+    body.dark #outputStoich, 
+    body.dark #outputGas {
+        background: #3a3a3a;
+        border-left-color: #4cd964;
+    }
+
+    .factor {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        padding: 10px;
+        background: #e8f1ff;
+        border-radius: 6px;
+    }
+    body.dark .factor {
+        background: #3a3a5a;
+    }
+
+    /* Gas Law Dynamic Layout */
+    .gas-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 15px;
+    }
+</style>
+</head>
+
+<body>
+
+<!-- Banner -->
+<img id="banner" src="banner.png" alt="Chemistry Applet Banner">
+
+<!-- Tabs + Dark Mode -->
+<div class="tabs">
+    <div class="tab active" onclick="showTab('da')">📐 Dimensional Analysis</div>
+    <div class="tab" onclick="showTab('stoich')">⚗️ Stoichiometry</div>
+    <div class="tab" onclick="showTab('gas')">🌡️ Gas Laws</div>
+
+    <button id="darkToggle" onclick="toggleDark()">🌙 Dark Mode</button>
+</div>
+
+<!-- CONTENT AREA -->
+
+<!-- DIMENSIONAL ANALYSIS -->
+<div id="da" class="content">
+    <h2>📐 Dimensional Analysis</h2>
+
+    <label>Starting Value:</label>
+    <input id="startValueDA" type="number" step="any">
+    <label>Unit:</label>
+    <input id="startUnitDA" type="text">
+
+    <div id="factorsDA"></div>
+
+    <button onclick="addFactorDA()">Add Conversion Factor</button>
+    <button onclick="calculateDA()">Calculate</button>
+    <button onclick="copyOutput('outputDA')">Copy Output</button>
+
+    <div id="outputDA"></div>
+</div>
+
+<!-- STOICHIOMETRY -->
+<div id="stoich" class="content" style="display:none;">
+    <h2>⚗️ Stoichiometry</h2>
+
+    <label>Balanced Equation:</label><br>
+    <input id="equation" style="width:400px;" placeholder="e.g., 2 H2 + O2 -> 2 H2O"><br>
+
+    <label>Given Amount:</label>
+    <input id="givenValue" type="number" step="any">
+    <select id="givenUnit">
+        <option value="g">g</option>
+        <option value="mol">mol</option>
+        <option value="L">L (gas at STP)</option>
+        <option value="particles">particles</option>
+    </select>
+
+    <label>Given Substance:</label>
+    <input id="givenSubstance" type="text">
+
+    <br><br>
+
+    <label>Target Substance:</label>
+    <input id="targetSubstance" type="text">
+
+    <label>Target Unit:</label>
+    <select id="targetUnit">
+        <option value="g">g</option>
+        <option value="mol">mol</option>
+        <option value="L">L (gas at STP)</option>
+        <option value="particles">particles</option>
+    </select>
+
+    <br><br>
+
+    <button onclick="calculateStoich()">Calculate Stoichiometry</button>
+    <button onclick="copyOutput('outputStoich')">Copy Output</button>
+
+    <div id="outputStoich"></div>
+</div>
+
+<!-- GAS LAWS -->
+<div id="gas" class="content" style="display:none;">
+    <h2>🌡️ Gas Law Solver</h2>
+
+    <label>Select Equation:</label>
+    <select id="gasEquation" onchange="renderGasInputs()">
+        <option value="pvnrt">PV = nRT</option>
+        <option value="combined">P1V1/T1 = P2V2/T2</option>
+        <option value="dalton">Dalton's Law</option>
+        <option value="density">D = PM/RT</option>
+    </select>
+
+    <div id="gasInputs"></div>
+
+    <button onclick="calculateGas()">Calculate Gas Law</button>
+    <button onclick="copyOutput('outputGas')">Copy Output</button>
+
+    <div id="outputGas"></div>
+</div>
+
+<script>
+/* ---------------- DARK MODE ---------------- */
+function toggleDark() {
+    document.body.classList.toggle("dark");
+}
+
+/* ---------------- TAB SWITCHING ---------------- */
+function showTab(tab) {
+    document.getElementById("da").style.display = "none";
+    document.getElementById("stoich").style.display = "none";
+    document.getElementById("gas").style.display = "none";
+
+    document.getElementById(tab).style.display = "block";
+
+    let tabs = document.querySelectorAll(".tab");
+    tabs.forEach(t => t.classList.remove("active"));
+    event.target.classList.add("active");
+}
+
+/* ---------------- DIMENSIONAL ANALYSIS ---------------- */
+let factorCountDA = 0;
+
+function addFactorDA() {
+    factorCountDA++;
+    const div = document.createElement("div");
+    div.className = "factor";
+    div.innerHTML = `
+        <strong>Factor ${factorCountDA}</strong>
+        <input id="num${factorCountDA}" type="number" step="any" placeholder="Numerator">
+        <input id="numUnit${factorCountDA}" type="text" placeholder="Unit">
+        /
+        <input id="den${factorCountDA}" type="number" step="any" placeholder="Denominator">
+        <input id="denUnit${factorCountDA}" type="text" placeholder="Unit">
+    `;
+    document.getElementById("factorsDA").appendChild(div);
+}
+
+function calculateDA() {
+    let value = parseFloat(document.getElementById("startValueDA").value);
+    let unit = document.getElementById("startUnitDA").value.trim();
+    let steps = `Starting value:\n${value} ${unit}\n\nSteps:\n`;
+
+    for (let i = 1; i <= factorCountDA; i++) {
+        let num = parseFloat(document.getElementById("num" + i).value);
+        let numUnit = document.getElementById("numUnit" + i).value.trim();
+        let den = parseFloat(document.getElementById("den" + i).value);
+        let denUnit = document.getElementById("denUnit" + i).value.trim();
+
+        if (!num || !den || !numUnit || !denUnit) continue;
+
+        value *= (num / den);
+
+        let shownUnit = (unit === denUnit) ? numUnit : unit + "·" + numUnit + "/" + denUnit;
+
+        steps += `${unit} × (${num} ${numUnit} / ${den} ${denUnit}) → ${value.toFixed(6)} ${shownUnit}\n`;
+
+        unit = shownUnit;
+    }
+
+    document.getElementById("outputDA").innerText = steps;
+}
+
+/* ---------------- STOICHIOMETRY ---------------- */
+const periodic = {
+    H:1.008, He:4.003, Li:6.94, Be:9.012, B:10.81, C:12.01, N:14.01, O:16.00, F:19.00, Ne:20.18,
+    Na:22.99, Mg:24.31, Al:26.98, Si:28.09, P:30.97, S:32.06, Cl:35.45, Ar:39.95,
+    K:39.10, Ca:40.08, Fe:55.85, Cu:63.55, Zn:65.38, Br:79.90, Ag:107.87, I:126.90, Ba:137.33, Hg:200.59, Pb:207.2
+};
+
+function parseFormula(formula) {
+    let stack = [{}];
+    let i = 0;
+
+    while (i < formula.length) {
+        if (formula[i] === "(") {
+            stack.push({});
+            i++;
+        } else if (formula[i] === ")") {
+            let group = stack.pop();
+            i++;
+            let num = "";
+            while (/[0-9]/.test(formula[i])) num += formula[i++];
+            num = num ? parseInt(num) : 1;
+
+            for (let el in group) {
+                stack[stack.length - 1][el] = (stack[stack.length - 1][el] || 0) + group[el] * num;
+            }
+        } else {
+            let el = formula[i++];
+            if (/[a-z]/.test(formula[i])) el += formula[i++];
+
+            let num = "";
+            while (/[0-9]/.test(formula[i])) num += formula[i++];
+            num = num ? parseInt(num) : 1;
+
+            stack[stack.length - 1][el] = (stack[stack.length - 1][el] || 0) + num;
+        }
+    }
+    return stack[0];
+}
+
+function molarMass(formula) {
+    let parsed = parseFormula(formula);
+    let mass = 0;
+    for (let el in parsed) {
+        mass += periodic[el] * parsed[el];
+    }
+    return mass;
+}
+
+function calculateStoich() {
+    let eq = document.getElementById("equation").value;
+    let givenVal = parseFloat(document.getElementById("givenValue").value);
+    let givenUnit = document.getElementById("givenUnit").value;
+    let givenSub = document.getElementById("givenSubstance").value.trim();
+    let targetSub = document.getElementById("targetSubstance").value.trim();
+    let targetUnit = document.getElementById("targetUnit").value;
+
+    let [left, right] = eq.split("->").map(s => s.trim());
+    let reactants = left.split("+").map(s => s.trim());
+    let products = right.split("+").map(s => s.trim());
+
+    function getCoeff(species) {
+        let match = species.match(/^(\d+)\s*(.*)$/);
+        return match ? [parseInt(match[1]), match[2]] : [1, species];
+    }
+
+    let coeffs = {};
+    [...reactants, ...products].forEach(s => {
+        let [c, f] = getCoeff(s);
+        coeffs[f] = c;
+    });
+
+    let steps = `Balanced equation: ${eq}\n\n`;
+
+    let mmGiven = molarMass(givenSub);
+    let mmTarget = molarMass(targetSub);
+
+    steps += `Molar mass of ${givenSub}: ${mmGiven.toFixed(3)} g/mol\n`;
+    steps += `Molar mass of ${targetSub}: ${mmTarget.toFixed(3)} g/mol\n\n`;
+
+    let molesGiven = givenUnit === "g" ? givenVal / mmGiven :
+                     givenUnit === "mol" ? givenVal :
+                     givenUnit === "L" ? givenVal / 22.4 :
+                     givenUnit === "particles" ? givenVal / 6.022e23 : 0;
+
+    steps += `Convert given to moles: ${molesGiven.toFixed(6)} mol ${givenSub}\n`;
+
+    let moleRatio = coeffs[targetSub] / coeffs[givenSub];
+    let molesTarget = molesGiven * moleRatio;
+
+    steps += `Apply mole ratio: × (${coeffs[targetSub]} / ${coeffs[givenSub]}) = ${molesTarget.toFixed(6)} mol ${targetSub}\n`;
+
+    let final;
+    if (targetUnit === "g") final = molesTarget * mmTarget;
+    if (targetUnit === "mol") final = molesTarget;
+    if (targetUnit === "L") final = molesTarget * 22.4;
+    if (targetUnit === "particles") final = molesTarget * 6.022e23;
+
+    steps += `\nFinal answer: ${final.toExponential(6)} ${targetUnit}`;
+
+    document.getElementById("outputStoich").innerText = steps;
+}
+
+/* ---------------- GAS LAWS (DYNAMIC) ---------------- */
+function renderGasInputs() {
+    let eq = document.getElementById("gasEquation").value;
+    let div = document.getElementById("gasInputs");
+
+    if (eq === "pvnrt") {
+        div.innerHTML = `
+            <div class="gas-grid">
+                <div>P (atm):<br><input id="P"></div>
+                <div>V (L):<br><input id="V"></div>
+                <div>n (mol):<br><input id="n"></div>
+                <div>T (K):<br><input id="T"></div>
+            </div>
+        `;
+    }
+
+    if (eq === "combined") {
+        div.innerHTML = `
+            <div class="gas-grid">
+                <div>P1:<br><input id="P1"></div>
+                <div>V1:<br><input id="V1"></div>
+                <div>T1:<br><input id="T1"></div>
+                <div>P2:<br><input id="P2"></div>
+                <div>V2:<br><input id="V2"></div>
+                <div>T2:<br><input id="T2"></div>
+            </div>
+        `;
+    }
+
+    if (eq === "dalton") {
+        div.innerHTML = `
+            <div class="gas-grid">
+                <div>P_total:<br><input id="Ptot"></div>
+                <div>P₁:<br><input id="P1d"></div>
+                <div>P₂:<br><input id="P2d"></div>
+            </div>
+        `;
+    }
+
+    if (eq === "density") {
+        div.innerHTML = `
+            <div class="gas-grid">
+                <div>D (g/L):<br><input id="D"></div>
+                <div>P (atm):<br><input id="Pden"></div>
+                <div>M (g/mol):<br><input id="M"></div>
+                <div>T (K):<br><input id="Tden"></div>
+            </div>
+        `;
+    }
+}
+
+renderGasInputs(); // initialize
+
+function calculateGas() {
+    let eq = document.getElementById("gasEquation").value;
+    let out = "";
+
+    if (eq === "pvnrt") {
+        let P = parseFloat(document.getElementById("P").value);
+        let V = parseFloat(document.getElementById("V").value);
+        let nVal = parse
