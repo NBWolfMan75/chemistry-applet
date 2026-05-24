@@ -152,81 +152,88 @@
 <!-- CONTENT AREA -->
 
 <!-- DIMENSIONAL ANALYSIS -->
-<div id="da" class="content">
-    <h2>📐 Dimensional Analysis</h2>
+<div id="da" class="panel active">
+    <h2>Dimensional Analysis</h2>
 
-    <label>Starting Value:</label>
-    <input id="startValueDA" type="number" step="any">
-    <label>Unit:</label>
-    <input id="startUnitDA" type="text">
+    <label>Starting Value:</label><br>
+    <input id="daValue" type="number" step="any" style="width:120px;">
+    <input id="daUnit" type="text" placeholder="unit" style="width:120px;"><br><br>
 
-    <div id="factorsDA"></div>
+    <button onclick="addFactor()" style="margin-bottom:10px;">Add Conversion Factor</button>
 
-    <button onclick="addFactorDA()">Add Conversion Factor</button>
+    <div id="factorContainer"></div>
+
+    <br>
     <button onclick="calculateDA()">Calculate</button>
-    <button onclick="copyOutput('outputDA')">Copy Output</button>
 
-    <div id="outputDA"></div>
+    <h3>Output</h3>
+    <pre id="daOutput" style="
+        background:#0a0d12;
+        border:1px solid #3fa9ff;
+        padding:15px;
+        color:#9bd1ff;
+        font-size:15px;
+        white-space:pre-wrap;
+        box-shadow:0 0 10px #3fa9ff33;
+    "></pre>
 </div>
 
 <!-- STOICHIOMETRY -->
-<div id="stoich" class="content" style="display:none;">
-    <h2>⚗️ Stoichiometry</h2>
+<div id="stoich" class="panel">
+    <h2>Stoichiometry</h2>
 
     <label>Balanced Equation:</label><br>
-    <input id="equation" style="width:400px;" placeholder="e.g., 2 H2 + O2 -> 2 H2O"><br>
+    <input id="eqInput" type="text" placeholder="e.g., 2 H2 + O2 → 2 H2O" style="width:90%;"><br><br>
 
-    <label>Given Amount:</label>
-    <input id="givenValue" type="number" step="any">
-    <select id="givenUnit">
-        <option value="g">g</option>
-        <option value="mol">mol</option>
-        <option value="L">L (gas at STP)</option>
-        <option value="particles">particles</option>
-    </select>
+    <label>Given Amount:</label><br>
+    <input id="givenAmt" type="number" step="any" placeholder="value" style="width:120px;">
+    <input id="givenUnit" type="text" placeholder="unit (mol or g)" style="width:120px;">
+    <input id="givenSpecies" type="text" placeholder="species (e.g., H2)" style="width:120px;"><br><br>
 
-    <label>Given Substance:</label>
-    <input id="givenSubstance" type="text">
+    <label>Target Species:</label><br>
+    <input id="targetSpecies" type="text" placeholder="species (e.g., H2O)" style="width:120px;">
+    <input id="targetUnit" type="text" placeholder="unit (mol or g)" style="width:120px;"><br><br>
 
-    <br><br>
+    <button onclick="calculateStoich()">Calculate</button>
 
-    <label>Target Substance:</label>
-    <input id="targetSubstance" type="text">
-
-    <label>Target Unit:</label>
-    <select id="targetUnit">
-        <option value="g">g</option>
-        <option value="mol">mol</option>
-        <option value="L">L (gas at STP)</option>
-        <option value="particles">particles</option>
-    </select>
-
-    <br><br>
-
-    <button onclick="calculateStoich()">Calculate Stoichiometry</button>
-    <button onclick="copyOutput('outputStoich')">Copy Output</button>
-
-    <div id="outputStoich"></div>
+    <h3>Output</h3>
+    <pre id="stoichOutput" style="
+        background:#0a0d12;
+        border:1px solid #3fa9ff;
+        padding:15px;
+        color:#9bd1ff;
+        font-size:15px;
+        white-space:pre-wrap;
+        box-shadow:0 0 10px #3fa9ff33;
+    "></pre>
 </div>
 
 <!-- GAS LAWS -->
-<div id="gas" class="content" style="display:none;">
-    <h2>🌡️ Gas Law Solver</h2>
+<div id="gas" class="panel">
+    <h2>Gas Laws</h2>
 
-    <label>Select Equation:</label>
-    <select id="gasEquation" onchange="renderGasInputs()">
+    <label>Select Equation:</label><br>
+    <select id="gasMode">
         <option value="pvnrt">PV = nRT</option>
-        <option value="combined">P1V1/T1 = P2V2/T2</option>
+        <option value="combined">Combined Gas Law</option>
         <option value="dalton">Dalton's Law</option>
-        <option value="density">D = PM/RT</option>
-    </select>
+        <option value="density">Density Gas Law</option>
+    </select><br><br>
 
     <div id="gasInputs"></div>
 
-    <button onclick="calculateGas()">Calculate Gas Law</button>
-    <button onclick="copyOutput('outputGas')">Copy Output</button>
+    <button onclick="calculateGas()">Calculate</button>
 
-    <div id="outputGas"></div>
+    <h3>Output</h3>
+    <pre id="gasOutput" style="
+        background:#0a0d12;
+        border:1px solid #3fa9ff;
+        padding:15px;
+        color:#9bd1ff;
+        font-size:15px;
+        white-space:pre-wrap;
+        box-shadow:0 0 10px #3fa9ff33;
+    "></pre>
 </div>
 
 <script>
@@ -249,204 +256,189 @@ function showTab(tab) {
 }
 
 /* ---------------- DIMENSIONAL ANALYSIS ---------------- */
-let factorCountDA = 0;
+/* ---------------------------
+   DIMENSIONAL ANALYSIS ENGINE
+----------------------------*/
 
-function addFactorDA() {
-    factorCountDA++;
-    const div = document.createElement("div");
-    div.className = "factor";
-    div.innerHTML = `
-        <strong>Factor ${factorCountDA}</strong>
-        <input id="num${factorCountDA}" type="number" step="any" placeholder="Numerator">
-        <input id="numUnit${factorCountDA}" type="text" placeholder="Unit">
-        /
-        <input id="den${factorCountDA}" type="number" step="any" placeholder="Denominator">
-        <input id="denUnit${factorCountDA}" type="text" placeholder="Unit">
+let factorCount = 0;
+
+function addFactor() {
+    factorCount++;
+
+    const container = document.getElementById("factorContainer");
+
+    const block = document.createElement("div");
+    block.id = "factor" + factorCount;
+    block.style.marginBottom = "12px";
+    block.style.padding = "10px";
+    block.style.border = "1px solid #1e3a5f";
+    block.style.background = "#11151c";
+
+    block.innerHTML = `
+        <strong>Factor ${factorCount}</strong><br>
+        <input id="num${factorCount}" type="number" step="any" placeholder="numerator" style="width:100px;">
+        <input id="numUnit${factorCount}" type="text" placeholder="unit" style="width:100px;">
+        &nbsp; / &nbsp;
+        <input id="den${factorCount}" type="number" step="any" placeholder="denominator" style="width:100px;">
+        <input id="denUnit${factorCount}" type="text" placeholder="unit" style="width:100px;">
+        &nbsp;
+        <button onclick="removeFactor(${factorCount})">Remove</button>
     `;
-    document.getElementById("factorsDA").appendChild(div);
+
+    container.appendChild(block);
+}
+
+function removeFactor(id) {
+    const block = document.getElementById("factor" + id);
+    if (block) block.remove();
 }
 
 function calculateDA() {
-    let value = parseFloat(document.getElementById("startValueDA").value);
-    let unit = document.getElementById("startUnitDA").value.trim();
-    let steps = `Starting value:\n${value} ${unit}\n\nSteps:\n`;
+    let value = parseFloat(document.getElementById("daValue").value);
+    let unit = document.getElementById("daUnit").value.trim();
 
-    for (let i = 1; i <= factorCountDA; i++) {
+    if (isNaN(value) || unit === "") {
+        document.getElementById("daOutput").innerText = "Enter a starting value and unit.";
+        return;
+    }
+
+    let output = `Starting Value:\n${value} ${unit}\n\nSteps:\n`;
+
+    let currentValue = value;
+    let currentUnit = unit;
+
+    for (let i = 1; i <= factorCount; i++) {
+        const block = document.getElementById("factor" + i);
+        if (!block) continue;
+
         let num = parseFloat(document.getElementById("num" + i).value);
         let numUnit = document.getElementById("numUnit" + i).value.trim();
         let den = parseFloat(document.getElementById("den" + i).value);
         let denUnit = document.getElementById("denUnit" + i).value.trim();
 
-        if (!num || !den || !numUnit || !denUnit) continue;
+        if (isNaN(num) || isNaN(den) || numUnit === "" || denUnit === "") {
+            output += `Factor ${i}: incomplete — skipped.\n`;
+            continue;
+        }
 
-        value *= (num / den);
+        // Multiply value
+        currentValue = currentValue * (num / den);
 
-        let shownUnit = (unit === denUnit) ? numUnit : unit + "·" + numUnit + "/" + denUnit;
+        // Unit cancellation
+        if (currentUnit === denUnit) {
+            currentUnit = numUnit;
+        } else {
+            currentUnit = `${currentUnit}·(${numUnit}/${denUnit})`;
+        }
 
-        steps += `${unit} × (${num} ${numUnit} / ${den} ${denUnit}) → ${value.toFixed(6)} ${shownUnit}\n`;
-
-        unit = shownUnit;
+        output += `× (${num} ${numUnit} / ${den} ${denUnit}) → ${currentValue} ${currentUnit}\n`;
     }
 
-    document.getElementById("outputDA").innerText = steps;
+    output += `\nFinal Answer:\n${currentValue} ${currentUnit}`;
+
+    document.getElementById("daOutput").innerText = output;
 }
 
 /* ---------------- STOICHIOMETRY ---------------- */
-const periodic = {
-    H:1.008, He:4.003, Li:6.94, Be:9.012, B:10.81, C:12.01, N:14.01, O:16.00, F:19.00, Ne:20.18,
-    Na:22.99, Mg:24.31, Al:26.98, Si:28.09, P:30.97, S:32.06, Cl:35.45, Ar:39.95,
-    K:39.10, Ca:40.08, Fe:55.85, Cu:63.55, Zn:65.38, Br:79.90, Ag:107.87, I:126.90, Ba:137.33, Hg:200.59, Pb:207.2
-};
-
-function parseFormula(formula) {
-    let stack = [{}];
-    let i = 0;
-
-    while (i < formula.length) {
-        if (formula[i] === "(") {
-            stack.push({});
-            i++;
-        } else if (formula[i] === ")") {
-            let group = stack.pop();
-            i++;
-            let num = "";
-            while (/[0-9]/.test(formula[i])) num += formula[i++];
-            num = num ? parseInt(num) : 1;
-
-            for (let el in group) {
-                stack[stack.length - 1][el] = (stack[stack.length - 1][el] || 0) + group[el] * num;
-            }
-        } else {
-            let el = formula[i++];
-            if (/[a-z]/.test(formula[i])) el += formula[i++];
-
-            let num = "";
-            while (/[0-9]/.test(formula[i])) num += formula[i++];
-            num = num ? parseInt(num) : 1;
-
-            stack[stack.length - 1][el] = (stack[stack.length - 1][el] || 0) + num;
-        }
-    }
-    return stack[0];
-}
-
-function molarMass(formula) {
-    let parsed = parseFormula(formula);
-    let mass = 0;
-    for (let el in parsed) {
-        mass += periodic[el] * parsed[el];
-    }
-    return mass;
-}
-
-function calculateStoich() {
-    let eq = document.getElementById("equation").value;
-    let givenVal = parseFloat(document.getElementById("givenValue").value);
-    let givenUnit = document.getElementById("givenUnit").value;
-    let givenSub = document.getElementById("givenSubstance").value.trim();
-    let targetSub = document.getElementById("targetSubstance").value.trim();
-    let targetUnit = document.getElementById("targetUnit").value;
-
-    let [left, right] = eq.split("->").map(s => s.trim());
-    let reactants = left.split("+").map(s => s.trim());
-    let products = right.split("+").map(s => s.trim());
-
-    function getCoeff(species) {
-        let match = species.match(/^(\d+)\s*(.*)$/);
-        return match ? [parseInt(match[1]), match[2]] : [1, species];
-    }
-
-    let coeffs = {};
-    [...reactants, ...products].forEach(s => {
-        let [c, f] = getCoeff(s);
-        coeffs[f] = c;
-    });
-
-    let steps = `Balanced equation: ${eq}\n\n`;
-
-    let mmGiven = molarMass(givenSub);
-    let mmTarget = molarMass(targetSub);
-
-    steps += `Molar mass of ${givenSub}: ${mmGiven.toFixed(3)} g/mol\n`;
-    steps += `Molar mass of ${targetSub}: ${mmTarget.toFixed(3)} g/mol\n\n`;
-
-    let molesGiven = givenUnit === "g" ? givenVal / mmGiven :
-                     givenUnit === "mol" ? givenVal :
-                     givenUnit === "L" ? givenVal / 22.4 :
-                     givenUnit === "particles" ? givenVal / 6.022e23 : 0;
-
-    steps += `Convert given to moles: ${molesGiven.toFixed(6)} mol ${givenSub}\n`;
-
-    let moleRatio = coeffs[targetSub] / coeffs[givenSub];
-    let molesTarget = molesGiven * moleRatio;
-
-    steps += `Apply mole ratio: × (${coeffs[targetSub]} / ${coeffs[givenSub]}) = ${molesTarget.toFixed(6)} mol ${targetSub}\n`;
-
-    let final;
-    if (targetUnit === "g") final = molesTarget * mmTarget;
-    if (targetUnit === "mol") final = molesTarget;
-    if (targetUnit === "L") final = molesTarget * 22.4;
-    if (targetUnit === "particles") final = molesTarget * 6.022e23;
-
-    steps += `\nFinal answer: ${final.toExponential(6)} ${targetUnit}`;
-
-    document.getElementById("outputStoich").innerText = steps;
-}
 
 /* ---------------- GAS LAWS (DYNAMIC) ---------------- */
-function renderGasInputs() {
-    let eq = document.getElementById("gasEquation").value;
-    let div = document.getElementById("gasInputs");
 
-    if (eq === "pvnrt") {
-        div.innerHTML = `
-            <div class="gas-grid">
-                <div>P (atm):<br><input id="P"></div>
-                <div>V (L):<br><input id="V"></div>
-                <div>n (mol):<br><input id="n"></div>
-                <div>T (K):<br><input id="T"></div>
-            </div>
+/* ---------------------------
+   GAS LAW ENGINE
+----------------------------*/
+
+document.getElementById("gasMode").addEventListener("change", loadGasInputs);
+loadGasInputs();
+
+function loadGasInputs() {
+    let mode = document.getElementById("gasMode").value;
+    let box = document.getElementById("gasInputs");
+
+    if (mode === "pvnrt") {
+        box.innerHTML = `
+            P (atm): <input id="P" type="number" step="any"><br>
+            V (L): <input id="V" type="number" step="any"><br>
+            n (mol): <input id="n" type="number" step="any"><br>
+            T (K): <input id="T" type="number" step="any"><br>
+            <small>Leave ONE blank to solve for it.</small>
         `;
     }
 
-    if (eq === "combined") {
-        div.innerHTML = `
-            <div class="gas-grid">
-                <div>P1:<br><input id="P1"></div>
-                <div>V1:<br><input id="V1"></div>
-                <div>T1:<br><input id="T1"></div>
-                <div>P2:<br><input id="P2"></div>
-                <div>V2:<br><input id="V2"></div>
-                <div>T2:<br><input id="T2"></div>
-            </div>
+    if (mode === "combined") {
+        box.innerHTML = `
+            P1: <input id="P1" type="number" step="any">
+            V1: <input id="V1" type="number" step="any">
+            T1: <input id="T1" type="number" step="any"><br>
+            P2: <input id="P2" type="number" step="any">
+            V2: <input id="V2" type="number" step="any">
+            T2: <input id="T2" type="number" step="any"><br>
         `;
     }
 
-    if (eq === "dalton") {
-        div.innerHTML = `
-            <div class="gas-grid">
-                <div>P_total:<br><input id="Ptot"></div>
-                <div>P₁:<br><input id="P1d"></div>
-                <div>P₂:<br><input id="P2d"></div>
-            </div>
+    if (mode === "dalton") {
+        box.innerHTML = `
+            P_total: <input id="Ptot" type="number" step="any"><br>
+            P1: <input id="P1d" type="number" step="any"><br>
+            P2: <input id="P2d" type="number" step="any"><br>
         `;
     }
 
-    if (eq === "density") {
-        div.innerHTML = `
-            <div class="gas-grid">
-                <div>D (g/L):<br><input id="D"></div>
-                <div>P (atm):<br><input id="Pden"></div>
-                <div>M (g/mol):<br><input id="M"></div>
-                <div>T (K):<br><input id="Tden"></div>
-            </div>
+    if (mode === "density") {
+        box.innerHTML = `
+            Density (g/L): <input id="D" type="number" step="any"><br>
+            Pressure (atm): <input id="Pden" type="number" step="any"><br>
+            Molar Mass (g/mol): <input id="M" type="number" step="any"><br>
+            Temperature (K): <input id="Tden" type="number" step="any"><br>
         `;
     }
 }
 
-renderGasInputs(); // initialize
 function calculateGas() {
-    document.getElementById("outputGas").innerText =
-        "Gas law solver will be activated in Version 1.0.3.";
-}
+    let mode = document.getElementById("gasMode").value;
+    let out = "";
 
+    if (mode === "pvnrt") {
+        const R = 0.08206;
+        let P = parseFloat(P.value);
+        let V = parseFloat(V.value);
+        let nVal = parseFloat(n.value);
+        let Tval = parseFloat(T.value);
+
+        if (isNaN(P)) P = (nVal * R * Tval) / V;
+        else if (isNaN(V)) V = (nVal * R * Tval) / P;
+        else if (isNaN(nVal)) nVal = (P * V) / (R * Tval);
+        else if (isNaN(Tval)) Tval = (P * V) / (nVal * R);
+
+        out = `PV = nRT\nP=${P}, V=${V}, n=${nVal}, T=${Tval}`;
+    }
+
+    if (mode === "combined") {
+        let P1v = parseFloat(P1.value);
+        let V1v = parseFloat(V1.value);
+        let T1v = parseFloat(T1.value);
+        let P2v = parseFloat(P2.value);
+        let V2v = parseFloat(V2.value);
+        let T2v = parseFloat(T2.value);
+
+        out = `Combined Gas Law\n(P1V1/T1) = (P2V2/T2)\nInputs: ${P1v}, ${V1v}, ${T1v}, ${P2v}, ${V2v}, ${T2v}`;
+    }
+
+    if (mode === "dalton") {
+        let Ptot = parseFloat(Ptot.value);
+        let P1d = parseFloat(P1d.value);
+        let P2d = parseFloat(P2d.value);
+
+        out = `Dalton's Law\nP_total = P1 + P2\nInputs: ${Ptot}, ${P1d}, ${P2d}`;
+    }
+
+    if (mode === "density") {
+        let Dv = parseFloat(D.value);
+        let Pv = parseFloat(Pden.value);
+        let Mv = parseFloat(M.value);
+        let Tv = parseFloat(Tden.value);
+
+        out = `Density Gas Law\nD = PM/RT\nInputs: ${Dv}, ${Pv}, ${Mv}, ${Tv}`;
+    }
+
+    document.getElementById("gasOutput").innerText = out;
+}
